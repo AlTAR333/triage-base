@@ -21,11 +21,18 @@ export default function ChatPage() {
     setIsSending(true);
     setError(null);
 
+    const history: Message[] = [...messages, { role: "user", text: message }];
+
     try {
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message }),
+        body: JSON.stringify({
+          messages: history.map(({ role, text }) => ({
+            role,
+            content: text,
+          })),
+        }),
       });
       const data: unknown = await response.json();
 
@@ -50,11 +57,7 @@ export default function ChatPage() {
       }
 
       const answer = data.answer;
-      setMessages((previous) => [
-        ...previous,
-        { role: "user", text: message },
-        { role: "assistant", text: answer },
-      ]);
+      setMessages([...history, { role: "assistant", text: answer }]);
       setText("");
     } catch (error) {
       setError(
@@ -70,7 +73,7 @@ export default function ChatPage() {
   return (
     <main className="chat">
       <h1>Support chat</h1>
-      <p>Send a message and get an echo reply.</p>
+      <p>Send a message and get a reply from the assistant.</p>
       <section
         className="messages"
         role="log"
