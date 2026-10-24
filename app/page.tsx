@@ -1,10 +1,12 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import UsageLine from "./components/UsageLine";
 
 type Message = {
   role: "user" | "assistant";
   text: string;
+  usage?: { input_tokens: number; output_tokens: number; total_tokens: number };
 };
 
 export default function ChatPage() {
@@ -21,49 +23,39 @@ export default function ChatPage() {
     setIsSending(true);
     setError(null);
 
-    const history: Message[] = [...messages, { role: "user", text: message }];
+    // Memory: send the whole history plus the new user message.
+    const history = [
+      ...messages.map((m) => ({ role: m.role, content: m.text })),
+      { role: "user" as const, content: message },
+    ];
 
     try {
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          messages: history.map(({ role, text }) => ({
-            role,
-            content: text,
-          })),
-        }),
+        body: JSON.stringify({ messages: history }),
       });
-      const data: unknown = await response.json();
+      const data = await response.json();
 
       if (!response.ok) {
-        const detail =
-          typeof data === "object" &&
-          data !== null &&
-          "error" in data &&
-          typeof data.error === "string"
-            ? data.error
-            : "Unable to send your message. Please try again.";
-        throw new Error(detail);
+        const issues: string[] = Array.isArray(data?.issues) ? data.issues : [];
+        throw new Error(
+          [data?.error ?? "Unable to send your message.", ...issues].join(" "),
+        );
       }
-
-      if (
-        typeof data !== "object" ||
-        data === null ||
-        !("answer" in data) ||
-        typeof data.answer !== "string"
-      ) {
+      if (typeof data?.answer !== "string") {
         throw new Error("The server returned an invalid reply. Please try again.");
       }
 
-      const answer = data.answer;
-      setMessages([...history, { role: "assistant", text: answer }]);
+      setMessages((previous) => [
+        ...previous,
+        { role: "user", text: message },
+        { role: "assistant", text: data.answer, usage: data.usage },
+      ]);
       setText("");
-    } catch (error) {
+    } catch (err) {
       setError(
-        error instanceof Error
-          ? error.message
-          : "Unable to send your message. Please try again.",
+        err instanceof Error ? err.message : "Unable to send your message.",
       );
     } finally {
       setIsSending(false);
@@ -73,7 +65,7 @@ export default function ChatPage() {
   return (
     <main className="chat">
       <h1>Support chat</h1>
-      <p>Send a message and get a reply from the assistant.</p>
+      <p>The assistant remembers the conversation.</p>
       <section
         className="messages"
         role="log"
@@ -85,6 +77,13 @@ export default function ChatPage() {
           <div className={`message ${message.role}`} key={index}>
             <strong>{message.role === "user" ? "You" : "Assistant"}</strong>
             <p>{message.text}</p>
+            {message.usage && (
+              <UsageLine
+                input={message.usage.input_tokens}
+                output={message.usage.output_tokens}
+                total={message.usage.total_tokens}
+              />
+            )}
           </div>
         ))}
       </section>
@@ -96,7 +95,6 @@ export default function ChatPage() {
           onChange={(event) => setText(event.target.value)}
           placeholder="Describe what you need help with..."
           rows={3}
-          required
           disabled={isSending}
         />
         <button type="submit" disabled={isSending || !text.trim()}>

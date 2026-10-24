@@ -1,63 +1,53 @@
 # Support ticket triage app
 
-This repository is the starting point for an educational project in which
-computer science students will build a support ticket triage application. The
-planned application will use a large language model (LLM) from the backend to
-help analyze incoming support requests and support the triage process.
+A Next.js app that triages support tickets with an LLM, a decision model (DM), or both.
 
-The codebase is intentionally a basic skeleton. It provides a small chat
-interface and server endpoint as a first step: before building the full triage
-workflow, students can use this mock chat to validate the connection between
-the application and an LLM provider.
+## Features
 
-## Current status
+- **Chat** (`/`): LLM chat with memory (the full conversation history is sent on each message).
+- **Triage** (`/triage`): category, priority, human-review flag and summary for one ticket. Choose the strategy `llm`, `dm` or `dm+llm`. Request and response follow JSON schemas and are validated with Zod; invalid requests show a clear error. Each result shows token usage (input, output, total).
+- **Smoke test** (`/smoke`): pick the dataset (labelled 100 or 500), a random sample size and a strategy. For the labelled set it shows predicted vs labelled category and priority per ticket plus a mismatch summary.
+- **Admin** (`/admin`): every logged run with accuracy, outcome counts, latency, cost and model. Runs are stored in `data/runs.json`.
 
-The chat feature is currently a mockup implemented as an echo service. The
-client sends a message to `/api/chat`, and the server returns it in a
-confirmation response. No LLM provider is called, and no LLM configuration is
-needed to run this version.
-
-This simple end-to-end flow is intended to make it possible to verify the
-application's client-to-backend connection first, then integrate and validate
-an LLM provider as an intermediate step, before implementing the complete
-support ticket triage feature. The triage route and LLM client are placeholders
-for that future work.
-
-## Sample data
-
-The `data/` folder contains two support-ticket datasets:
-
-- **500 unlabelled tickets** in
-  [`support_tickets_500.csv`](./data/support_tickets_500.csv) and
-  [`support_tickets_500.json`](./data/support_tickets_500.json), for exploring
-  and developing the triage workflow.
-- **100 labelled tickets** in
-  [`support_tickets_100_labelled.csv`](./data/support_tickets_100_labelled.csv)
-  and
-  [`support_tickets_100_labelled.json`](./data/support_tickets_100_labelled.json).
-  These include triage annotations such as category, priority, and whether a
-  ticket needs human review, making them useful for testing and evaluating
-  triage approaches.
-
-## Run locally
+## Setup
 
 Requires Node.js 20.9 or newer.
 
 ```sh
 npm install
+cp .env.example .env.local   # then fill in the values
 npm run dev
 ```
 
-Open http://localhost:3033 and send a message. Both `npm run dev` and
-`npm run start` use port 3033.
+Open http://localhost:3033.
 
-The Send button is disabled when the message is empty or contains only spaces,
-and while a request is in progress.
+### Environment variables
 
-The client posts `{ "message": "your text" }` to `/api/chat`. The App Router
-handler in `app/api/chat/route.ts` returns
-`{ "answer": "Hello, you just said: your text" }`. Invalid JSON or an
-empty/non-string message returns HTTP 400 with an `error`.
+| Variable | Meaning |
+|---|---|
+| `LLM_BASE_URL`, `LLM_API_KEY`, `LLM_MODEL` | Any OpenAI-compatible provider. The base URL includes `/v1`. |
+| `LLM_PRICE_INPUT_PER_M`, `LLM_PRICE_OUTPUT_PER_M` | USD per million tokens, used for the cost column (0 if free). |
+| `DM_BASE_URL`, `DM_API_KEY`, `DM_MODEL`, `DM_PATH` | Decision model provider (default path `/v1/systemone`). Check your provider's docs. |
+| `DM_PRICE_INPUT_PER_M` | USD per million input tokens for the DM. |
+| `DM_CONFIDENCE_THRESHOLD` | `dm+llm` keeps the DM answer at or above this confidence (default 0.8). |
+| `DM_REVIEW_THRESHOLD` | DM answers below this confidence set `needs_human_review` (default 0.7). |
+
+## Code map
+
+| Path | Role |
+|---|---|
+| `lib/schemas.ts` | Zod schemas (and JSON Schemas) for triage request/response, chat, smoke test, run log |
+| `lib/llm.ts` | OpenAI-compatible chat completions client with token usage, latency and cost |
+| `lib/decision.ts` | Decision model client |
+| `lib/triage.ts` | The three strategies |
+| `lib/tickets.ts`, `lib/runs.ts` | Dataset loading and sampling; run log |
+| `app/api/*` | `chat`, `triage`, `smoke`, `runs` routes |
+
+The datasets are in `data/`: 500 unlabelled tickets and 100 labelled tickets (category, priority, review flag).
+
+## Report
+
+See [`LLM-DM-report.md`](./LLM-DM-report.md). `node scripts/report-table.mjs` prints the run table.
 
 ## Checks
 

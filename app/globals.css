@@ -76,3 +76,107 @@ button:disabled {
 [role="alert"] {
   color: #a51d25;
 }
+
+/* ---- triage app additions ---- */
+.nav {
+  display: flex;
+  gap: 20px;
+  padding: 14px 24px;
+  background: white;
+  border-bottom: 1px solid #ccd3df;
+}
+
+.nav a {
+  color: #245dcc;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.page {
+  max-width: 760px;
+  margin: 32px auto;
+  padding: 24px;
+}
+
+.page.wide {
+  max-width: 1280px;
+}
+
+input,
+select {
+  padding: 10px;
+  border: 1px solid #ccd3df;
+  border-radius: 8px;
+  font: inherit;
+  background: white;
+  width: 100%;
+}
+
+form.row {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-items: end;
+}
+
+form.row label {
+  display: grid;
+  gap: 6px;
+}
+
+.card {
+  margin-top: 20px;
+  padding: 16px;
+  border: 1px solid #ccd3df;
+  border-radius: 12px;
+  background: white;
+}
+
+.card dl {
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  gap: 6px 12px;
+  margin: 0;
+}
+
+.card dt {
+  font-weight: 600;
+}
+
+.card dd {
+  margin: 0;
+}
+
+.usage {
+  margin: 8px 0 0;
+  font-size: 0.85rem;
+  color: #55607a;
+}
+
+.error-box {
+  margin-top: 16px;
+  padding: 12px 16px;
+  border: 1px solid #e3a3a8;
+  border-radius: 8px;
+  background: #fdecee;
+  color: #a51d25;
+}
+
+table {
+  width: 100%;
+  margin-top: 20px;
+  border-collapse: collapse;
+  background: white;
+  font-size: 0.9rem;
+}
+
+th,
+td {
+  padding: 8px 10px;
+  border: 1px solid #ccd3df;
+  text-align: left;
+  vertical-align: top;
+}
+
+td.bad {
+  background: #fdecee;
+  color: #a51d25;
+}
